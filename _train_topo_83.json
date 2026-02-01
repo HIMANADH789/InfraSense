@@ -1,0 +1,1 @@
+{"nodes": ["h1", "h2", "h3", "s1", "s2", "s3"], "links": [{"src": "h1", "dst": "s3", "bw": 16, "delay": "8ms"}, {"src": "h2", "dst": "s1", "bw": 55, "delay": "15ms"}, {"src": "h3", "dst": "s3", "bw": 35, "delay": "7ms"}], "flows": [{"src": "h2", "dst": "h1", "rate": 12}, {"src": "h2", "dst": "h1", "rate": 15}]}
