@@ -23,3 +23,16 @@ export async function analyzeTopology(topology) {
 
   return response.json();
 }
+
+/* ✅ NEW: Suggest Fix API */
+export async function suggestFix(analysisResult) {
+  const response = await fetch(`${BASE_URL}/suggest-fix`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(analysisResult),
+  });
+
+  return response.json();
+}

@@ -1,23 +1,45 @@
 import { useState } from "react";
+
 import TopologyInput from "./components/TopologyInput";
 import ValidationResult from "./components/ValidationResult";
 import AnalysisResult from "./components/AnalysisResult";
-import { validateTopology, analyzeTopology } from "./api/topologyApi";
+import SuggestFix from "./components/SuggestFix";
+
+import {
+  validateTopology,
+  analyzeTopology,
+  suggestFix, // ADD
+} from "./api/topologyApi";
+
 import "./App.css";
 
 function App() {
   const [validationResult, setValidationResult] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
 
+  //  NEW STATE
+  const [suggestResult, setSuggestResult] = useState(null);
+
   const handleValidate = async (topology) => {
     const result = await validateTopology(topology);
+
     setValidationResult(result);
     setAnalysisResult(null); // clear old analysis
+    setSuggestResult(null);  // clear old suggestions
   };
 
   const handleAnalyze = async (topology) => {
     const result = await analyzeTopology(topology);
+
     setAnalysisResult(result);
+
+    //  AUTO CALL /suggest-fix
+    try {
+      const suggest = await suggestFix(result);
+      setSuggestResult(suggest);
+    } catch (err) {
+      console.error("Suggest-fix error:", err);
+    }
   };
 
   return (
@@ -29,7 +51,7 @@ function App() {
           Topology Validation & Network Analysis
         </p>
 
-        {/* Topology Input (WIDER CARD) */}
+        {/* Topology Input */}
         <div className="card topology-card">
           <TopologyInput
             onValidate={handleValidate}
@@ -48,6 +70,13 @@ function App() {
         {analysisResult && (
           <div className="card">
             <AnalysisResult data={analysisResult} />
+          </div>
+        )}
+
+        {/* Suggest Fix Output */}
+        {suggestResult && (
+          <div className="card">
+            <SuggestFix data={suggestResult} />
           </div>
         )}
       </div>
