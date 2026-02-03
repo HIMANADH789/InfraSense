@@ -1,6 +1,7 @@
 # app.py
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware   # ✅ NEW
 from pydantic import BaseModel
 import json
 import os
@@ -15,6 +16,16 @@ app = FastAPI(
     version="1.0"
 )
 
+# --------------------------------------------------
+# 🌐 CORS CONFIGURATION (REQUIRED FOR FRONTEND)
+# --------------------------------------------------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],          # frontend origin (use specific URL in prod)
+    allow_credentials=True,
+    allow_methods=["*"],          # allows OPTIONS, POST, etc.
+    allow_headers=["*"],          # allows Content-Type
+)
 
 # -----------------------------
 # 📦 INPUT SCHEMA
@@ -25,17 +36,13 @@ class TopologyInput(BaseModel):
     flows: list
 
 
-
-
 # -----------------------------
 # 🧪 TOPOLOGY VALIDATION
 # -----------------------------
 @app.post("/topology/validate")
 def validate_topology(topology: TopologyInput):
     """
-    ROUTE PURPOSE:
-    - Validate user-designed topology BEFORE simulation
-    - Catch errors early (UX improvement)
+    Validate user-designed topology BEFORE simulation
     """
 
     warnings = []
@@ -60,49 +67,45 @@ def validate_topology(topology: TopologyInput):
 # -----------------------------
 @app.post("/analyze")
 def analyze_network(topology: TopologyInput):
-    """
-    ROUTE PURPOSE (MAIN ROUTE):
-    - User submits network design
-    - Backend runs:
-        1. Mininet simulation
-        2. Feature extraction
-        3. ML anomaly detection
-    - Returns ONLY VALUES (no drawing)
-    - Frontend uses this for visualization
-    """
 
-    # Save topology temporarily
+    print("\n📥 RECEIVED TOPOLOGY FROM FRONTEND:")
+    print(json.dumps(topology.dict(), indent=2))
+
     with tempfile.NamedTemporaryFile(
-    delete=False,
-    suffix=".json",
-    mode="w",          # 🔥 text mode
-    encoding="utf-8"   # 🔥 required for json
+        delete=False,
+        suffix=".json",
+        mode="w",
+        encoding="utf-8"
     ) as tmp:
         json.dump(topology.dict(), tmp)
         topo_file = tmp.name
 
-
     try:
         result = predict_network_behavior(topo_file)
+
+        print("\n📤 RESPONSE SENT TO FRONTEND:")
+        print(json.dumps(result, indent=2))
+
         return result
 
     finally:
         os.remove(topo_file)
 
 
+
 # -----------------------------
-# 🛠️ DESIGN SUGGESTIONS (RULE-BASED)
+# 🛠️ DESIGN SUGGESTIONS
 # -----------------------------
 @app.post("/suggest-fix")
 def suggest_fix(analysis: dict):
     """
-    Converts ML analysis into human-readable design suggestions
+    Convert ML analysis into human-readable design suggestions
     """
 
     if "global" not in analysis:
         raise HTTPException(
             status_code=400,
-            detail="Invalid analysis input. Call /analyze first and pass its output here."
+            detail="Invalid analysis input. Call /analyze first."
         )
 
     suggestions = []
@@ -119,7 +122,7 @@ def suggest_fix(analysis: dict):
         suggestions.append({
             "type": "topology",
             "target": "network",
-            "suggestion": "Consider adding parallel paths or reducing traffic load"
+            "suggestion": "Add redundancy or reduce traffic load"
         })
 
     return {
